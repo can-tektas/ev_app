@@ -68,7 +68,7 @@
                             const coords = routeData.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
 
                             // Çizgi kalınlığını artırma
-                            L.polyline(coords, {color: 'blue', weight: 5}).addTo(map);
+                            L.polyline(coords, {color: 'black', weight: 10}).addTo(map);
                         });
                     });
                 });
