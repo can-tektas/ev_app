@@ -140,3 +140,25 @@ def route():
         return jsonify(response.json())
     else:
         return jsonify({'error': 'Route not found', 'status': response.status_code}), 400
+    
+@app.route('/route', methods=['POST'])
+def get_route():
+    data = request.get_json()
+    start = data['start']  # [lon, lat]
+    end = data['end']      # [lon, lat]
+
+    headers = {
+        'Accept': 'application/json, application/geo+json',
+        'Authorization': API_KEY,
+        'Content-Type': 'application/json'
+    }
+
+    body = {
+        "coordinates": [start, end]
+    }
+
+    response = requests.post('https://api.openrouteservice.org/v2/directions/driving-car',
+                             json=body, headers=headers)
+
+    return jsonify(response.json())
+
