@@ -42,17 +42,9 @@
                         const userCoords = [position.coords.latitude, position.coords.longitude];
                         const stationCoords = [best.coordinates[1], best.coordinates[0]];
 
-                        // Pin icon'unu büyütme
-                        let largeIcon = L.icon({
-                            iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Map_marker_icon_%28blue%29.svg/200px-Map_marker_icon_%28blue%29.svg.png',  // Örnek icon
-                            iconSize: [40, 40],  // Pin boyutu
-                            iconAnchor: [20, 40],  // Simgeyi konumlandırma
-                            popupAnchor: [0, -40]  // Popup'ı açarken pinin nereye yerleştirileceği
-                        });
-
-                        // Kullanıcı ve istasyon pinlerini haritaya ekle
-                        L.marker(userCoords, {icon: largeIcon}).addTo(map).bindPopup("You are here").openPopup();
-                        L.marker(stationCoords, {icon: largeIcon}).addTo(map).bindPopup(best.name);
+                        // Marker ekle
+                        L.marker(userCoords).addTo(map).bindPopup("You are here").openPopup();
+                        L.marker(stationCoords).addTo(map).bindPopup(best.name);
 
                         // Rota iste
                         fetch('/route', {
@@ -66,9 +58,7 @@
                         .then(response => response.json())
                         .then(routeData => {
                             const coords = routeData.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
-
-                            // Çizgi kalınlığını artırma
-                            L.polyline(coords, {color: 'blue', weight: 5}).addTo(map);
+                            L.polyline(coords, {color: 'blue'}).addTo(map);
                         });
                     });
                 });
@@ -83,5 +73,6 @@
     <button onclick="getLocationAndSend()">Use My Location & Show Nearest Stations</button>
     <div id="result"></div>
     <div id="map" style="height: 400px; margin-top: 20px;"></div>
+
 </body>
 </html>
