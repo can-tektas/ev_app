@@ -1,0 +1,191 @@
+ev_app\app.py:
+
+from flask import Flask, render_template, request, jsonify
+import requests
+import os
+import random
+
+# API Anahtarını doğrudan buraya ekleyebilirsiniz, ancak çevresel değişken kullanmanız daha güvenli olur.
+API_KEY = "5b3ce3597851110001cf6248131fee57310748b9a61e299dcee2bc23"
+
+app = Flask(__name__)
+
+charging_stations = [
+    {"name": "Galeria Malta", "coordinates": [16.9656, 52.4064]},
+    {"name": "Stary Browar", "coordinates": [16.9252, 52.4025]},
+    {"name": "Poznań Plaza", "coordinates": [16.9342, 52.4387]},
+    {"name": "Orlen (Małe Garbary 1A)", "coordinates": [16.9413, 52.4111]},
+    {"name": "Novotel Poznań Centrum", "coordinates": [16.9192, 52.4029]}
+]
+
+def calculate_score(distance_km, occupancy, charging_speed, price):
+    w_distance = 0.2
+    w_occupancy = 0.3
+    w_speed = 0.3
+    w_price = 0.2
+
+    score = (
+        w_distance * (1 / (distance_km + 1)) +
+        w_occupancy * (1 - occupancy) +
+        w_speed * (charging_speed / 150) +
+        w_price * (1 / price)
+    )
+    return score
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/recommend', methods=['POST'])
+def recommend():
+    data = request.get_json()
+    user_coords = [data['lon'], data['lat']]  # [lon, lat]
+
+    headers = {
+        'Accept': 'application/json',
+        'Authorization': API_KEY,
+        'Content-Type': 'application/json'
+    }
+
+    station_scores = []
+
+    for station in charging_stations:
+        station["occupancy"] = random.uniform(0.2, 1)
+        station["charging_speed"] = random.choice([22, 50, 120])
+        station["price"] = round(random.uniform(1.5, 3.5), 2)
+
+        body = {
+            "coordinates": [user_coords, station["coordinates"]]
+        }
+
+        response = requests.post('https://api.openrouteservice.org/v2/directions/driving-car',
+                                 json=body, headers=headers)
+
+        if response.status_code == 200:
+            result = response.json()
+            distance = result["routes"][0]["summary"]["distance"] / 1000
+
+            score = calculate_score(distance, station["occupancy"],
+                                    station["charging_speed"], station["price"])
+
+            station_scores.append({
+                "name": station["name"],
+                "distance": round(distance, 2),
+                "occupancy": round(station["occupancy"] * 100),
+                "charging_speed": station["charging_speed"],
+                "price": station["price"],
+                "score": round(score, 4),
+                "coordinates": station["coordinates"]
+            })
+
+    sorted_stations = sorted(station_scores, key=lambda x: x["score"], reverse=True)
+    return jsonify(sorted_stations)
+
+@app.route('/route', methods=['POST'])
+def route():
+    data = request.get_json()
+    start = data['start']  # [longitude, latitude]
+    end = data['end']      # [longitude, latitude]
+
+    headers = {
+        'Authorization': API_KEY,
+        'Accept': 'application/json'
+    }
+
+    body = {
+        "coordinates": [start, end]
+    }
+
+    response = requests.post('https://api.openrouteservice.org/v2/directions/driving-car',
+                             json=body, headers=headers)
+
+    if response.status_code == 200:
+        return jsonify(response.json())
+    else:
+        return jsonify({'error': 'Route not found', 'status': response.status_code}), 400
+
+
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+
+ev_app\static\js\script.js:
+
+let map = L.map('map').setView([52.4064, 16.9656], 13); // Starting map position (Poznań)
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+// Get user's geolocation
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+        let userLat = position.coords.latitude;
+        let userLon = position.coords.longitude;
+
+        // Add marker for user's location
+        L.marker([userLat, userLon]).addTo(map)
+            .bindPopup("Your Location")
+            .openPopup();
+
+        // Send request to the Flask server to get recommended stations
+        fetch('/recommend', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lat: userLat, lon: userLon })
+        })
+        .then(response => response.json())
+        .then(data => {
+            let resultDiv = document.getElementById("result");
+            let stationsList = "<ul>";
+
+            // List each station and add a marker to the map
+            data.forEach(station => {
+                stationsList += `<li>${station.name} - Distance: ${station.distance} km, Price: ${station.price} €</li>`;
+
+                // Add station marker to the map
+                L.marker([station.coordinates[1], station.coordinates[0]]).addTo(map)
+                    .bindPopup(`${station.name} - ${station.distance} km away`)
+                    .openPopup();
+            });
+
+            stationsList += "</ul>";
+            resultDiv.innerHTML = stationsList;
+        })
+        .catch(error => console.error('Error:', error));
+    });
+} else {
+    alert("Geolocation is not supported by this browser.");
+}
+
+
+ev_app\templates\index.html:
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EV Charging Station Recommendation App</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+</head>
+
+<body>
+    <h1>EV Charging Station Recommendation App</h1>
+
+    <!-- Show the recommended charging stations -->
+    <div id="result"></div>
+
+    <!-- Map container -->
+    <div id="map" style="height: 500px;"></div>
+
+    <!-- Include Leaflet.js -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <!-- Include your JavaScript file -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+
+</html>
