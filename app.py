@@ -82,8 +82,8 @@ def recommend():
 @app.route('/route', methods=['POST'])
 def route():
     data = request.get_json()
-    start = data['start']  # [longitude, latitude]
-    end = data['end']      # [longitude, latitude]
+    start = data['start']  # [lon, lat]
+    end = data['end']      # [lon, lat]
 
     headers = {
         'Authorization': API_KEY,
@@ -91,7 +91,8 @@ def route():
     }
 
     body = {
-        "coordinates": [start, end]
+        "coordinates": [start, end],
+        "geometry_format": "geojson"
     }
 
     response = requests.post('https://api.openrouteservice.org/v2/directions/driving-car',
