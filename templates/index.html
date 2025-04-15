@@ -1,77 +1,66 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
-
-    <title>EV Charging Station Recommendation</title>
-    <script>
-        function getLocationAndSend() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    fetch('/recommend', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            lat: position.coords.latitude,
-                            lon: position.coords.longitude
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        let result = document.getElementById("result");
-                        result.innerHTML = "<h3>Top Recommended Stations:</h3>";
-
-                        let best = data[0]; // En iyi istasyonu seç
-                        result.innerHTML += `
-                            <p><b>1. ${best.name}</b><br>
-                            Distance: ${best.distance} km<br>
-                            Occupancy: ${best.occupancy}%<br>
-                            Charging Speed: ${best.charging_speed} kW<br>
-                            Price: ${best.price} PLN/kWh<br>
-                            Score: ${best.score}</p>`;
-
-                        // Haritayı göster
-                        const map = L.map('map').setView([position.coords.latitude, position.coords.longitude], 13);
-
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a>'
-                        }).addTo(map);
-
-                        // Kullanıcı ve istasyon konumları
-                        const userCoords = [position.coords.latitude, position.coords.longitude];
-                        const stationCoords = [best.coordinates[1], best.coordinates[0]];
-
-                        // Marker ekle
-                        L.marker(userCoords).addTo(map).bindPopup("You are here").openPopup();
-                        L.marker(stationCoords).addTo(map).bindPopup(best.name);
-
-                        // Rota iste
-                        fetch('/route', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                start: [position.coords.longitude, position.coords.latitude],
-                                end: best.coordinates
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(routeData => {
-                            const coords = routeData.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
-                            L.polyline(coords, {color: 'blue'}).addTo(map);
-                        });
-                    });
-                });
-            } else {
-                alert("Location access not available.");
-            }
-        }
-    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EV Charging Stations</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
 <body>
-    <h2>EV Charging Station Recommendation App</h2>
-    <button onclick="getLocationAndSend()">Use My Location & Show Nearest Stations</button>
+    <h1>EV Charging Station Recommendation App</h1>
     <div id="result"></div>
-    <div id="map" style="height: 400px; margin-top: 20px;"></div>
+    <div id="map" style="height: 500px;"></div>
+
+    <!-- Leaflet.js ve JavaScript kodları -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Harita başlangıcı
+        let map = L.map('map').setView([52.4064, 16.9656], 13); // Başlangıç harita merkezi
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Kullanıcının konumunu al
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                let userLat = position.coords.latitude;
+                let userLon = position.coords.longitude;
+
+                // Kullanıcının konumunu haritada işaretle
+                L.marker([userLat, userLon]).addTo(map)
+                    .bindPopup("Your Location")
+                    .openPopup();
+
+                // En yakın istasyonları almak için Flask API'sine POST isteği gönder
+                fetch('/recommend', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lat: userLat, lon: userLon })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    let resultDiv = document.getElementById("result");
+                    let stationsList = "<ul>";
+                    
+                    // Her bir istasyonun bilgisini göster
+                    data.forEach(station => {
+                        stationsList += `<li>${station.name} - Distance: ${station.distance} km, Price: ${station.price} €</li>`;
+                        
+                        // İstasyonu haritada göster
+                        L.marker([station.coordinates[1], station.coordinates[0]]).addTo(map)
+                            .bindPopup(`${station.name} - ${station.distance} km away`)
+                            .openPopup();
+                    });
+
+                    stationsList += "</ul>";
+                    resultDiv.innerHTML = stationsList;
+                })
+                .catch(error => console.error('Error:', error));
+            });
+        } else {
+            alert("Geolocation is not supported by this browser.");
+        }
+    </script>
 </body>
 </html>

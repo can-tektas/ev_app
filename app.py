@@ -3,10 +3,9 @@ import requests
 import random
 import os
 
-# API anahtarını çevre değişkeninden alıyoruz
-API_KEY = os.getenv('5b3ce3597851110001cf6248131fee57310748b9a61e299dcee2bc23')
-
 app = Flask(__name__)
+
+API_KEY = "5b3ce3597851110001cf6248131fee57310748b9a61e299dcee2bc23"
 
 charging_stations = [
     {"name": "Galeria Malta", "coordinates": [16.9656, 52.4064]},
@@ -79,33 +78,5 @@ def recommend():
     sorted_stations = sorted(station_scores, key=lambda x: x["score"], reverse=True)
     return jsonify(sorted_stations)
 
-@app.route('/route', methods=['POST'])
-def get_route():
-    data = request.get_json()
-    start = data['start']  # [lon, lat]
-    end = data['end']      # [lon, lat]
-
-    headers = {
-        'Accept': 'application/json, application/geo+json',
-        'Authorization': API_KEY,
-        'Content-Type': 'application/json'
-    }
-
-    body = {
-        "coordinates": [start, end]
-    }
-
-    response = requests.post('https://api.openrouteservice.org/v2/directions/driving-car',
-                             json=body, headers=headers)
-
-    if response.status_code == 200:
-        return jsonify(response.json())
-    else:
-        return jsonify({"error": "Route data could not be fetched."}), 400
-
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
-
-
-
+    app.run(debug=True)
