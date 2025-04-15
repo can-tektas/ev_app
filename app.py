@@ -20,7 +20,7 @@ def calculate_score(distance_km, occupancy, charging_speed, price):
     w_distance = 0.2
     w_occupancy = 0.3
     w_speed = 0.3
-    w_price = 0.1
+    w_price = 0.2
 
     score = (
         w_distance * (1 / (distance_km + 1)) +
