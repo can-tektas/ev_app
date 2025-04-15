@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, jsonify
 import requests
 import random
 import os
+from flask import request, jsonify
+import requests
 
 
 app = Flask(__name__)
@@ -107,3 +109,33 @@ def get_route():
         return jsonify(response.json())  # JSON rotayı dön
     else:
         return jsonify({"error": response.text}), response.status_code
+
+
+
+
+@app.route('/route', methods=['POST'])
+def route():
+    data = request.json
+    start = data['start']  # [longitude, latitude]
+    end = data['end']      # [longitude, latitude]
+
+    # OpenRouteService API URL
+    url = f"https://api.openrouteservice.org/v2/directions/driving-car"
+    
+    headers = {
+        'Authorization': '5b3ce3597851110001cf6248131fee57310748b9a61e299dcee2bc23',
+        'Accept': 'application/json'
+    }
+
+    params = {
+        'start': f'{start[0]},{start[1]}',
+        'end': f'{end[0]},{end[1]}'
+    }
+
+    # API isteği
+    response = requests.get(url, headers=headers, params=params)
+
+    if response.status_code == 200:
+        return jsonify(response.json())
+    else:
+        return jsonify({'error': 'Route not found', 'status': response.status_code}), 400
