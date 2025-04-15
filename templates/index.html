@@ -1,87 +1,95 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <title>EV Charging Station Recommendation</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <style>
+        #map {
+            height: 500px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h2>EV Charging Station Recommendation App</h2>
+    <button onclick="getLocationAndSend()">Use My Location & Show Nearest Stations</button>
+    <div id="result"></div>
+    <div id="map"></div>
 
-    <title>EV Charging Station Recommendation</title>
     <script>
+        let map;
+
         function getLocationAndSend() {
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(function(position) {
-                    fetch('/recommend', {
+                navigator.geolocation.getCurrentPosition(async function(position) {
+                    const userLat = position.coords.latitude;
+                    const userLon = position.coords.longitude;
+
+                    // Haritayı oluştur ve kullanıcı konumuna göre ortala
+                    if (map) map.remove(); // önceki haritayı temizle
+                    map = L.map('map').setView([userLat, userLon], 13);
+
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a>'
+                    }).addTo(map);
+
+                    // Kullanıcı konumunu göster
+                    const userMarker = L.marker([userLat, userLon]).addTo(map).bindPopup("You are here").openPopup();
+
+                    // API'den önerilen istasyonu al
+                    const response = await fetch('/recommend', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lat: userLat, lon: userLon })
+                    });
+
+                    const data = await response.json();
+                    const best = data[0];
+
+                    // İstasyon konumu
+                    const stationLat = best.coordinates[1];
+                    const stationLon = best.coordinates[0];
+                    const stationCoords = [stationLat, stationLon];
+
+                    // İstasyon marker'ı ekle
+                    const stationMarker = L.marker(stationCoords).addTo(map).bindPopup(best.name);
+
+                    // Bilgileri göster
+                    document.getElementById("result").innerHTML = `
+                        <h3>Top Recommended Station:</h3>
+                        <p><b>${best.name}</b><br>
+                        Distance: ${best.distance} km<br>
+                        Occupancy: ${best.occupancy}%<br>
+                        Charging Speed: ${best.charging_speed} kW<br>
+                        Price: ${best.price} PLN/kWh<br>
+                        Score: ${best.score}</p>
+                    `;
+
+                    // Rota verisi al
+                    const routeRes = await fetch('/route', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            lat: position.coords.latitude,
-                            lon: position.coords.longitude
+                            start: [userLon, userLat],
+                            end: best.coordinates
                         })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        let result = document.getElementById("result");
-                        result.innerHTML = "<h3>Top Recommended Stations:</h3>";
-
-                        let best = data[0]; // En iyi istasyonu seç
-                        result.innerHTML += `
-                            <p><b>1. ${best.name}</b><br>
-                            Distance: ${best.distance} km<br>
-                            Occupancy: ${best.occupancy}%<br>
-                            Charging Speed: ${best.charging_speed} kW<br>
-                            Price: ${best.price} PLN/kWh<br>
-                            Score: ${best.score}</p>`;
-
-                        // Haritayı göster
-                        const map = L.map('map').setView([position.coords.latitude, position.coords.longitude], 13);
-
-                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                            attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a>'
-                        }).addTo(map);
-
-                        // Kullanıcı ve istasyon konumları
-                        const userCoords = [position.coords.latitude, position.coords.longitude];
-                        const stationCoords = [best.coordinates[1], best.coordinates[0]];
-
-                        // Pin icon'unu büyütme
-                        let largeIcon = L.icon({
-                            iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Map_marker_icon_%28blue%29.svg/200px-Map_marker_icon_%28blue%29.svg.png',  // Örnek icon
-                            iconSize: [40, 40],  // Pin boyutu
-                            iconAnchor: [20, 40],  // Simgeyi konumlandırma
-                            popupAnchor: [0, -40]  // Popup'ı açarken pinin nereye yerleştirileceği
-                        });
-
-                        // Kullanıcı ve istasyon pinlerini haritaya ekle
-                        L.marker(userCoords, {icon: largeIcon}).addTo(map).bindPopup("You are here").openPopup();
-                        L.marker(stationCoords, {icon: largeIcon}).addTo(map).bindPopup(best.name);
-
-                        // Rota iste
-                        fetch('/route', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                start: [position.coords.longitude, position.coords.latitude],
-                                end: best.coordinates
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(routeData => {
-                            const coords = routeData.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
-
-                            // Çizgi kalınlığını artırma
-                            L.polyline(coords, {color: 'black', weight: 10}).addTo(map);
-                        });
                     });
+
+                    const routeData = await routeRes.json();
+
+                    // Koordinatları uygun formata çevir
+                    const routeCoords = routeData.features[0].geometry.coordinates.map(c => [c[1], c[0]]);
+
+                    // Rota çiz
+                    L.polyline(routeCoords, { color: 'blue', weight: 5 }).addTo(map);
+                }, function(error) {
+                    alert("Failed to get your location.");
                 });
             } else {
                 alert("Location access not available.");
             }
         }
     </script>
-</head>
-<body>
-    <h2>EV Charging Station Recommendation App</h2>
-    <button onclick="getLocationAndSend()">Use My Location & Show Nearest Stations</button>
-    <div id="result"></div>
-    <div id="map" style="height: 400px; margin-top: 20px;"></div>
 </body>
 </html>
