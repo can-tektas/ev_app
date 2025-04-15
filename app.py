@@ -2,13 +2,11 @@ from flask import Flask, render_template, request, jsonify
 import requests
 import random
 import os
-from flask import request, jsonify
-import requests
 
+# API anahtarını çevre değişkeninden alıyoruz
+API_KEY = os.getenv('5b3ce3597851110001cf6248131fee57310748b9a61e299dcee2bc23')
 
 app = Flask(__name__)
-
-API_KEY = "5b3ce3597851110001cf6248131fee57310748b9a61e299dcee2bc23"
 
 charging_stations = [
     {"name": "Galeria Malta", "coordinates": [16.9656, 52.4064]},
@@ -81,12 +79,6 @@ def recommend():
     sorted_stations = sorted(station_scores, key=lambda x: x["score"], reverse=True)
     return jsonify(sorted_stations)
 
-if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 5000))
-    app.run(debug=False, host='0.0.0.0', port=port)
-
-
-
 @app.route('/route', methods=['POST'])
 def get_route():
     data = request.get_json()
@@ -106,36 +98,14 @@ def get_route():
     response = requests.post('https://api.openrouteservice.org/v2/directions/driving-car',
                              json=body, headers=headers)
 
-    return jsonify(response.json())
-
-
-
-@app.route('/route', methods=['POST'])
-def route():
-    data = request.json
-    start = data['start']  # [longitude, latitude]
-    end = data['end']      # [longitude, latitude]
-
-    # OpenRouteService API URL
-    url = f"https://api.openrouteservice.org/v2/directions/driving-car"
-    
-    headers = {
-        'Authorization': '5b3ce3597851110001cf6248131fee57310748b9a61e299dcee2bc23',
-        'Accept': 'application/json'
-    }
-
-    params = {
-        'start': f'{start[0]},{start[1]}',
-        'end': f'{end[0]},{end[1]}'
-    }
-
-    # API isteği
-    response = requests.get(url, headers=headers, params=params)
-
     if response.status_code == 200:
         return jsonify(response.json())
     else:
-        return jsonify({'error': 'Route not found', 'status': response.status_code}), 400
-    
+        return jsonify({"error": "Route data could not be fetched."}), 400
+
+if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=False, host='0.0.0.0', port=port)
+
 
 
