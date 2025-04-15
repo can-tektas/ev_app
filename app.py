@@ -85,6 +85,8 @@ if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
 
+
+
 @app.route('/route', methods=['POST'])
 def get_route():
     data = request.get_json()
@@ -105,33 +107,6 @@ def get_route():
                              json=body, headers=headers)
 
     return jsonify(response.json())
-
-
-@app.route("/route", methods=["POST"])
-def get_route():
-    data = request.get_json()
-    start = data.get("start")  # [lon, lat]
-    end = data.get("end")      # [lon, lat]
-
-    if not start or not end:
-        return jsonify({"error": "Invalid coordinates"}), 400
-
-    url = f"https://api.openrouteservice.org/v2/directions/driving-car"
-    headers = {
-        'Accept': 'application/json',
-        'Authorization': API_KEY
-    }
-    body = {
-        "coordinates": [start, end]
-    }
-
-    response = requests.post(url, json=body, headers=headers)
-    
-    if response.status_code == 200:
-        return jsonify(response.json())  # JSON rotayı dön
-    else:
-        return jsonify({"error": response.text}), response.status_code
-
 
 
 
