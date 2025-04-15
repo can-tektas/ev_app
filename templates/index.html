@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EV Şarj Noktası Tavsiyesi</title>
+    <script>
+        function getLocationAndSend() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    fetch('/recommend', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            lat: position.coords.latitude,
+                            lon: position.coords.longitude
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        let result = document.getElementById("result");
+                        result.innerHTML = "<h3>En İyi İstasyonlar:</h3>";
+                        data.forEach((station, index) => {
+                            result.innerHTML += `
+                                <p><b>${index + 1}. ${station.name}</b><br>
+                                Mesafe: ${station.distance} km<br>
+                                Doluluk: ${station.occupancy}%<br>
+                                Hız: ${station.charging_speed} kW<br>
+                                Fiyat: ${station.price} PLN/kWh<br>
+                                Skor: ${station.score}</p>`;
+                        });
+                    });
+                });
+            } else {
+                alert("Konum bilgisi alınamadı.");
+            }
+        }
+    </script>
+</head>
+<body>
+    <h2>EV Şarj İstasyonu Tavsiye Uygulaması</h2>
+    <button onclick="getLocationAndSend()">Konumumu Kullan & En Yakın İstasyonları Göster</button>
+    <div id="result"></div>
+</body>
+</html>

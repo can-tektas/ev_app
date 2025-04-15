@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: ev-charger-app      # Render üzerindeki hizmetin adı (istediğin gibi değiştirebilirsin)
+    env: python               # Python ortamı
+    plan: free                # Ücretsiz planı kullanıyoruz
+    buildCommand: ""          # Build komutunu boş bırakıyoruz
+    startCommand: "python app.py"  # Uygulamanı çalıştıracak komut
