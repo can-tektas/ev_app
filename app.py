@@ -1,11 +1,12 @@
 from flask import Flask, render_template, request, jsonify
 import requests
-import random
 import os
+import random
+
+# API Anahtarını doğrudan buraya ekleyebilirsiniz, ancak çevresel değişken kullanmanız daha güvenli olur.
+API_KEY = "5b3ce3597851110001cf6248131fee57310748b9a61e299dcee2bc23"
 
 app = Flask(__name__)
-
-API_KEY = "5b3ce3597851110001cf6248131fee57310748b9a61e299dcee2bc23"
 
 charging_stations = [
     {"name": "Galeria Malta", "coordinates": [16.9656, 52.4064]},
@@ -77,6 +78,29 @@ def recommend():
 
     sorted_stations = sorted(station_scores, key=lambda x: x["score"], reverse=True)
     return jsonify(sorted_stations)
+
+@app.route('/route', methods=['POST'])
+def route():
+    data = request.get_json()
+    start = data['start']  # [longitude, latitude]
+    end = data['end']      # [longitude, latitude]
+
+    headers = {
+        'Authorization': API_KEY,
+        'Accept': 'application/json'
+    }
+
+    body = {
+        "coordinates": [start, end]
+    }
+
+    response = requests.post('https://api.openrouteservice.org/v2/directions/driving-car',
+                             json=body, headers=headers)
+
+    if response.status_code == 200:
+        return jsonify(response.json())
+    else:
+        return jsonify({'error': 'Route not found', 'status': response.status_code}), 400
 
 if __name__ == '__main__':
     app.run(debug=True)

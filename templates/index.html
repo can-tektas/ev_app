@@ -1,66 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EV Charging Stations</title>
+    <title>EV Charging Station Recommendation App</title>
+
+    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 </head>
+
 <body>
     <h1>EV Charging Station Recommendation App</h1>
+
+    <!-- Show the recommended charging stations -->
     <div id="result"></div>
+
+    <!-- Map container -->
     <div id="map" style="height: 500px;"></div>
 
-    <!-- Leaflet.js ve JavaScript kodları -->
+    <!-- Include Leaflet.js -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script>
-        // Harita başlangıcı
-        let map = L.map('map').setView([52.4064, 16.9656], 13); // Başlangıç harita merkezi
 
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        // Kullanıcının konumunu al
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function(position) {
-                let userLat = position.coords.latitude;
-                let userLon = position.coords.longitude;
-
-                // Kullanıcının konumunu haritada işaretle
-                L.marker([userLat, userLon]).addTo(map)
-                    .bindPopup("Your Location")
-                    .openPopup();
-
-                // En yakın istasyonları almak için Flask API'sine POST isteği gönder
-                fetch('/recommend', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lat: userLat, lon: userLon })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    let resultDiv = document.getElementById("result");
-                    let stationsList = "<ul>";
-                    
-                    // Her bir istasyonun bilgisini göster
-                    data.forEach(station => {
-                        stationsList += `<li>${station.name} - Distance: ${station.distance} km, Price: ${station.price} €</li>`;
-                        
-                        // İstasyonu haritada göster
-                        L.marker([station.coordinates[1], station.coordinates[0]]).addTo(map)
-                            .bindPopup(`${station.name} - ${station.distance} km away`)
-                            .openPopup();
-                    });
-
-                    stationsList += "</ul>";
-                    resultDiv.innerHTML = stationsList;
-                })
-                .catch(error => console.error('Error:', error));
-            });
-        } else {
-            alert("Geolocation is not supported by this browser.");
-        }
-    </script>
+    <!-- Include your JavaScript file -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
+
 </html>
