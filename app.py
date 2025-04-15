@@ -74,7 +74,8 @@ def recommend():
                 "occupancy": round(station["occupancy"] * 100),
                 "charging_speed": station["charging_speed"],
                 "price": station["price"],
-                "score": round(score, 4)
+                "score": round(score, 4),
+                "coordinates": station["coordinates"]
             })
 
     sorted_stations = sorted(station_scores, key=lambda x: x["score"], reverse=True)
