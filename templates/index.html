@@ -1,29 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EV Charging Station Recommendation App</title>
-
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <title>EV Charging Stations</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        #map { height: 600px; width: 100%; }
+    </style>
 </head>
-
 <body>
-    <h1>EV Charging Station Recommendation App</h1>
+    <h1>Find Charging Stations</h1>
+    <div id="map"></div>
+    <div id="stations"></div>
 
-    <!-- Show the recommended charging stations -->
-    <div id="result"></div>
-
-    <!-- Map container -->
-    <div id="map" style="height: 500px;"></div>
-
-    <!-- Include Leaflet.js -->
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-
-    <!-- Include your JavaScript file -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
-
 </html>
