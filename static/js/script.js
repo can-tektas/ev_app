@@ -1,71 +1,44 @@
-let map = L.map('map').setView([52.4064, 16.9656], 13); // Poznań başlangıç
+// ... (previous code remains the same until the fetch block)
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
-}).addTo(map);
+fetch('/recommend', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lat: userLat, lon: userLon })
+})
+.then(response => response.json())
+.then(data => {
+    let resultDiv = document.getElementById("result");
+    let stationsList = "<ul>";
 
-// Global değişkenler
-let userLat, userLon;
+    data.forEach(station => {
+        stationsList += `<li>${station.name} - Distance: ${station.distance} km, Price: ${station.price} €</li>`;
 
-// Kullanıcının konumunu al
-if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(function (position) {
-        userLat = position.coords.latitude;
-        userLon = position.coords.longitude;
+        // Add station marker
+        L.marker([station.coordinates[1], station.coordinates[0]]).addTo(map)
+            .bindPopup(`${station.name} - ${station.distance} km away`);
 
-        L.marker([userLat, userLon]).addTo(map)
-            .bindPopup("Your Location")
-            .openPopup();
-
-        // Flask backend’e öneri isteği at
-        fetch('/recommend', {
+        // Fetch and draw the route
+        fetch('/route', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ lat: userLat, lon: userLon })
-        })
-            .then(response => response.json())
-            .then(data => {
-                let resultDiv = document.getElementById("result");
-                let stationsList = "<ul>";
-
-                // En yüksek puanlı istasyonu seç
-                const bestStation = data[0];
-
-                data.forEach(station => {
-                    stationsList += `<li>${station.name} - Distance: ${station.distance} km, Price: ${station.price} €</li>`;
-
-                    L.marker([station.coordinates[1], station.coordinates[0]]).addTo(map)
-                        .bindPopup(`${station.name} - ${station.distance} km away`);
-                });
-
-                stationsList += "</ul>";
-                resultDiv.innerHTML = stationsList;
-
-                // Rota çizimi için istek at
-                fetch('/route', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        start: [userLon, userLat],
-                        end: bestStation.coordinates
-                    })
-                })
-                    .then(response => response.json())
-                    .then(routeData => {
-                        const coordinates = routeData.routes[0].geometry.coordinates;
-
-                        // Koordinatları Leaflet formatına çevir
-                        const latlngs = coordinates.map(coord => [coord[1], coord[0]]);
-
-                        // Rota çiz
-                        L.polyline(latlngs, { color: 'black', weight: 8 }).addTo(map);
-                    })
-                    .catch(err => {
-                        console.error("Rota çizimi hatası:", err);
-                    });
+            body: JSON.stringify({
+                start: [userLon, userLat], // [lon, lat]
+                end: station.coordinates     // [lon, lat]
             })
-            .catch(error => console.error('Error:', error));
+        })
+        .then(response => response.json())
+        .then(routeData => {
+            // Extract coordinates from the route
+            const routeCoords = routeData.routes[0].geometry.coordinates;
+            // Convert [lon, lat] to [lat, lon] for Leaflet
+            const latLngs = routeCoords.map(coord => [coord[1], coord[0]]);
+            // Draw the route
+            L.polyline(latLngs, { color: 'blue' }).addTo(map);
+        })
+        .catch(error => console.error('Route error:', error));
     });
-} else {
-    alert("Geolocation is not supported by this browser.");
-}
+
+    stationsList += "</ul>";
+    resultDiv.innerHTML = stationsList;
+})
+.catch(error => console.error('Error:', error));
