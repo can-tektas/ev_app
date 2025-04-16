@@ -6,6 +6,9 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
+const userLat = 52.4064; // Test: Poznań latitude
+const userLon = 16.9656; // Test: Poznań longitude
+
 // Get user's geolocation
 if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
