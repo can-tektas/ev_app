@@ -6,14 +6,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 }).addTo(map);
 
-fetch('/route', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        start: [userLon, userLat],  // [lon, lat]
-        end: station.coordinates    // [lon, lat]
-    })
-})
+
 
 // Get user's geolocation
 if (navigator.geolocation) {
